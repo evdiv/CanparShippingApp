@@ -1,0 +1,88 @@
+
+body {
+    line-height: 1.3;
+}
+
+.navbar {
+	padding: .3rem 1rem;
+}
+
+.bg-dark {
+	background-color: #909ba79e!important;
+}
+
+.alert-info {
+
+	/* default #d1ecf1; */
+	background-color: #9ecdd6;
+}
+
+.alert-secondary {
+	/* default #e1e2e4 */
+	background-color: #c9c0b9;
+}
+
+.alert-danger {
+	/* default #f7d6d9 */
+	background-color: #d6abae;
+}
+
+.alert-primary {
+	/* default #cbe4fe*/
+	background-color: #91bae2;
+}
+
+.active-link {
+	cursor: pointer;
+}
+
+.nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+    color: #495057;
+    background-color: #fff;
+    border-color: #b3b7bc #b3b7bc #fff;
+}
+
+.form-group {
+	margin-bottom: 0;
+}
+
+.form-control-sm, .input-group-sm>.form-control, .input-group-sm>.input-group-append>.btn, 
+.input-group-sm>.input-group-append>.input-group-text, .input-group-sm>.input-group-prepend>.btn, 
+.input-group-sm>.input-group-prepend>.input-group-text {
+    padding: .15rem .5rem;
+    font-size: .875rem;
+    line-height: 1.5;
+    border-radius: .2rem;
+}
+
+.pdfobject-container { 
+	height: 500px;
+}
+
+[v-cloak] { 
+	display: none 
+}
+
+.shipment-pin {
+	margin: 2px 0 4px 0; 
+	border-bottom: 1px dotted #e2e2e2;
+}
+
+.pdf-label {
+	display: none;
+}
+
+.btn-show-pdf {
+	margin-bottom: 10px;
+	line-height: 1.1;
+	float: right;
+}
+
+.alert-narrow {
+	padding: .20rem 0.85rem;
+	margin-bottom: .50rem
+}
+
+.col-form-label {
+	line-height: 1.4;
+}
