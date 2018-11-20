@@ -36,16 +36,18 @@
 					</div>
 
 
-					<div v-if="labels !== ''">
-						<img style="max-width: 100%; margin-bottom: 30px;" :src="labels" alt="Shipping Label" />
-	
-						<button type="button" class="btn btn-primary btn-block"  
-			    				v-on:click="printLabel(labels)">Print</button>
+					<div v-if="labels.length > 0">
+						<div v-for="label in labels" style='margin-bottom: 30px;'>
+
+							<img style="max-width: 100%; margin-bottom: 30px;" :src="label" alt="Shipping Label" />
+							<button type="button" class="btn btn-primary btn-block" v-on:click="printLabel(label)">Print</button>
+
+						</div>
 					</div>
 
 
-					<!-- Receiver Details--> 
-					<small v-if="labels === ''">
+					<!-- Receiver Details --> 
+					<small v-if="labels.length === 0">
 
 						<h6>TO: Customer</h6> 
 

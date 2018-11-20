@@ -2,6 +2,9 @@ var app = new Vue({
   				el: '#app', 
 				data: {
 
+					//Configuration
+					production: false,
+
 					//New Shipment Sender
 					locations: [],
 					senderLocationCode: '',
@@ -49,7 +52,7 @@ var app = new Vue({
 					selectedBoxId: '',
 					orders: [],
 					ordersDate: '',
-					labels: '',
+					labels: [],
 
 					//Completed Shipment Details
 					pins: [],
@@ -74,6 +77,7 @@ var app = new Vue({
 					manifestType: '',
 					manifestDescription: '',	
 					manifestStatus: '',					
+					manifestPdfUrl: '',
 
 					areRatesVisible: 0,
 					displayLoadServicesSpinner: 0,
@@ -85,6 +89,7 @@ var app = new Vue({
 					voidShipmentPin: '',
 					errors: [],
 					confirmation: '',
+					pdfUrl: '',
 					width: '',
 					length: '',
 					height: '',
@@ -373,6 +378,7 @@ var app = new Vue({
 						this.manifestType = "";
 						this.manifestDescription = "";	
 						this.manifestStatus = "";					
+						this.manifestPdfUrl = "";
 					},
 
 
@@ -458,6 +464,7 @@ var app = new Vue({
 
 						this.pins = [];
 						this.shipmentPin = '';
+						this.pdfUrl = '';
 					},
 
 
@@ -483,7 +490,7 @@ var app = new Vue({
 						if(this.receiverPhone === '') { this.errors.push("Customer Phone is required"); }	
 
 						if(this.receiverPostalCode === '') { this.errors.push("Customer Postal Code is required"); }
-						if(this.services.length === 0) { this.errors.push("At least one Purolator Service should be selected");}
+						if(this.services.length === 0) { this.errors.push("At least one Canpar Service should be selected");}
 						if(this.getTotalPieces() === 0) { this.errors.push("At least one Package is required"); }
 
 						return (this.errors.length === 0) ? true : false;
@@ -551,8 +558,14 @@ var app = new Vue({
 
 							self.displayLoadShipmentSpinner = 0;
 
-							if( response.data.errors.length === 0) {
+							self.dl('in the createShipment AJAX response');
+							self.dl(response);
+
+							if( response.data.errors.length === 0 ) {
 								self.labels = response.data.labels;
+
+								self.dl('Labels:');
+								self.dl(self.labels);
 
 								self.getOrders();
 								self.activateTab('history');
@@ -611,6 +624,7 @@ var app = new Vue({
 						this.packages = [];
 						this.services = [];
 						this.shipmentPin = '';
+						this.pdfUrl = '';
 
 						this.activateTab('shipment');
 					},
@@ -625,6 +639,26 @@ var app = new Vue({
 
     					return false;
 					},
+
+
+					storeLabelOnServer: function(fileName, pdfUrl) {
+
+						var attempt = setInterval(function(){ 
+
+							axios.post("api.php", {
+								action: "storeLabelOnServer",
+								fileName: fileName,
+								pdfUrl: pdfUrl
+
+							}).then(function(response) {
+								if(response.data) {
+									clearInterval(attempt);
+								}
+							});
+
+						}, 3000);
+					},
+
 
 					endOfDay: function() {
 
@@ -789,6 +823,13 @@ var app = new Vue({
 						$('#datetimepicker').datetimepicker({
 		            		format: 'L'
 		        		});
+					},
+
+					// Debug log
+					dl: function(data) {
+						if(!this.production) {
+							console.log(data);
+						}
 					}
 				}
 			});

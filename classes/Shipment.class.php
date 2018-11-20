@@ -11,7 +11,7 @@ class Shipment {
 	private $request;
 	private $response;	
 
-	public $labels = '';
+	public $labels = array();
 	public $voided = '';  
 
 	public $manifest_num = '';
@@ -31,13 +31,13 @@ class Shipment {
 	}
 
 
-	// Create new Shipment add 
-	public function create() { 
+	// Create new Shipment 
+	public function create() {
 
-		$this->createShipmentRequest();
+		$this->populateRequest();
 
 		try {
-			$this->response = $this->soap->processShipment($this->request);
+			$this->response = $this->soap->processShipment( new SoapVar($this->request, SOAP_ENC_OBJECT) );
 
 			if($this->debug) {  
 	        	echo '<p>Request in Create</p>';
@@ -66,13 +66,13 @@ class Shipment {
 			$response = $this->soap->getLabels($request);
 
 			//Store Labels on server
-			$this->labels = getFilePathOnServer($response->labels);
+			$this->labels = $this->extractFiles($response->labels);
 
 			if($this->debug) {  
 	        	echo '<p>Request in getLabels</p>';
 	        	echo '<pre>', print_r($request), '</pre>';
 
-	        	echo '<p>Response in getLAbels</p>';
+	        	echo '<p>Response in getLabels</p>';
 	        	echo '<pre>', print_r($response), '</pre>';
 	        }
 
@@ -97,29 +97,36 @@ class Shipment {
 
 		$shipment = $this->response->processShipmentResult->shipment;
 		$courierService = getServiceNameById($shipment->service_type);
-		$barcode = !empty($shipment->packages->barcode) ? $shipment->packages->barcode : '';
-		$trackingIdentifier = !empty($shipment->id) ? $shipment->id : '';
-
-		$height = !empty($shipment->packages->height) ? $shipment->packages->height : 0.0;
-		$length = !empty($shipment->packages->length) ? $shipment->packages->length : 0.0;
-		$width = !empty($shipment->packages->width) ? $shipment->packages->width : 0.0;
-		$weight = !empty($shipment->packages->reported_weight) ? $shipment->packages->reported_weight : 0.0;
 
 
-		//Add Tracking Number
-		$this->db->query("INSERT INTO TrackingInfo SET 
-			OrderID = '" . $orderID . "', 
-			TrackingCarrierID = 3, 
-			TrackingCode = '" . $barcode . "', 
-			TrackingIdentifier = " . $trackingIdentifier . ",
-			LocationCode = '" . $locationCode . "',  
-			AdminID = " . $adminID . ", 
-			Length = " . $length . ", 
-			Width = " . $width . ", 
-			Height = ". $height . ", 
-			Weight = " . $weight . ", 
-			Label = '" . $this->labels . "',
-			CourierService = '" . $courierService . "'");
+		foreach ($shipment->packages as $key => $package) {
+			
+			$barcode = !empty($package->barcode) ? $package->barcode : '';
+
+			$height = !empty($package->height) ? $package->height : 0.0;
+			$length = !empty($package->length) ? $package->length : 0.0;
+			$width = !empty($package->width) ? $package->width : 0.0;
+			$weight = !empty($package->reported_weight) ? $package->reported_weight : 0.0;
+
+
+			//Add Tracking Number
+			$this->db->query("INSERT INTO TrackingInfo SET 
+				OrderID = '" . $orderID . "', 
+				TrackingCarrierID = 3, 
+				TrackingCode = '" . $barcode . "', 
+				LocationCode = '" . $locationCode . "',  
+				AdminID = " . $adminID . ", 
+				Length = " . $length . ", 
+				Width = " . $width . ", 
+				Height = ". $height . ", 
+				Weight = " . $weight . ", 
+				Label = '" . $this->labels[$key] . "',
+				CourierService = '" . $courierService . "'");	
+		}
+
+		// Add Note to the order
+    	$this->db->query("INSERT INTO OrdersNotes (AdminID, OrderID, Note, NoteDate)
+            VALUES ({$adminID}, {$orderID}, 'Shipment created', Now())"); 
 	}
 
 
@@ -169,7 +176,6 @@ class Shipment {
         $request->user_id = CANPAR_USER_ID;
         $request->shipper_num = CANPAR_SHIPPER_NUMBER;   
 
-         //Possible Values:  C = CASH, V = VISA, A = AMERICAN EXPRESS, M = MASTERCARD
 		$request->payment_info->type = "C";
 
 		try {
@@ -196,16 +202,16 @@ class Shipment {
 	}
 
 
-	// This method returns a PDF manifest summarizing the shipments
+	// This method returns a manifest summarizing the shipments
 	// and charges related to the manifest number, a copy of which will be provided to the driver at the
 	// time of pickup. 
 
-	public function getManifest() {
+	public function getManifest() { 
 		$request = new \stdClass();
 
         $request->manifest_num = $this->incomingData['manifestNumber'];
-        $request->password = CANPAR_PASSWORD;
-        $request->shipper_num = CANPAR_SHIPPER_NUMBER;
+        $request->password = CANPAR_PASSWORD;        
+        $request->shipper_num = CANPAR_SHIPPER_NUMBER;   
         $request->user_id = CANPAR_USER_ID;
         $request->type = "S";
 
@@ -227,7 +233,7 @@ class Shipment {
        	if(empty($response->error)) {
 
         	//Store Manifest on server
-			$this->manifest = getFilePathOnServer($response->manifest, 'manifest');
+			$this->manifest = extractFiles($response->manifest, 'manifest');
         	$this->updateAsProccessedInDB();
        
         } else {
@@ -241,9 +247,9 @@ class Shipment {
 
 		try {
 			$this->response = $this->soap->Consolidate($this->request);
-		} catch(Exception $e) {
+		} catch(Exception $e) { 
 
-			$this->errors[] = "Exception:" . $e;
+			$this->errors[] = "Exception:" . $e; 
 		}
 	}
 
@@ -255,9 +261,9 @@ class Shipment {
 		$date = date('Y-m-d');
 
 		$this->db->query("UPDATE TrackingInfo 
-							SET Status = 1 
-							WHERE TrackingCarrierID = 3
-							AND DATE(DateAdded) = '" . $date . "'");
+						SET Status = 1 
+						WHERE TrackingCarrierID = 3
+						AND DATE(DateAdded) = '" . $date . "'");
 	}
 
 
@@ -275,11 +281,13 @@ class Shipment {
 		$shipperLocationSQL = !empty($shipperLocationID) ? " AND l.LocationsID = " . $shipperLocationID . " " : "";
 
 
-		$result = $this->db->query("SELECT t.*, l.LocationsID 
-								FROM TrackingInfo AS t, Locations AS l 
+		// Since the Pickering(Distribution Centre) has the same Location Code as Yorkville (l000) 
+		// exclude it for preventing duplication in history view
+		$result = $this->db->query("SELECT t.*, l.LocationsID FROM TrackingInfo AS t, Locations AS l 
 								WHERE t.LocationCode = l.LocationCode
 								" . $shipperLocationSQL . "
 								AND t.TrackingCarrierID = 3
+								AND l.LocationsID <> 65
 								AND DATE(t.DateAdded) = '" . $date . "'
 								ORDER BY t.OrderID DESC, t.TrackingCode");
 
@@ -313,16 +321,17 @@ class Shipment {
 
 		$shipment = array();
 
+
 		if(empty($pin)) {
 			$this->errors[] = "'Canpar PIN can not be empty'";
 		}
 
 		$result = $this->db->query("SELECT t.*, a.Username, l.ActualCityName, l.SteetAddress, l.PostalCode, l.LocationsID  
-								FROM TrackingInfo AS t, Admin AS a, Locations AS l 
-								WHERE t.TrackingCode =  '" . $pin . "' 
-								AND t.AdminID = a.AdminID 
-								AND t.LocationCode = l.LocationCode 
-								LIMIT 1");
+							FROM TrackingInfo AS t, Admin AS a, Locations AS l 
+							WHERE t.TrackingCode =  '" . $pin . "' 
+							AND t.AdminID = a.AdminID 
+							AND t.LocationCode = l.LocationCode 
+							LIMIT 1");
 
 		if($result) {
 			$row = $result->fetch_assoc();
@@ -382,7 +391,6 @@ class Shipment {
 
 		if($result) {
 			while($row = $result->fetch_assoc()) {
-
 				$boxes[] = array(
 					'id' => $row['ProductsBoxesID'],
 					'description' => $row['Description'],
@@ -420,30 +428,43 @@ class Shipment {
 
 
 
-    private function createShipmentRequest() {
+    private function populateRequest() {
 
-        // Build the shipment
-        $this->request->user_id = APP_CANPAR_USER_ID;
-        $this->request->password = APP_CANPAR_PASSWORD;
+    	$this->request = array();
 
-        $this->request->shipment->billed_weight = $this->incomingData['totalWeight'];
-        $this->request->shipment->billed_weight_unit = 'K';
-        $this->request->shipment->consolidation_type = 0;
-        $this->request->shipment->delivery_address = $this->getDeliveryAddress();
-        $this->request->shipment->dg = 0;
-        $this->request->shipment->dimention_unit = 'C';
-        $this->request->shipment->packages = $this->getPackages();
-        $this->request->shipment->pickup_address = $this->getPickupAddress();
-        $this->request->shipment->reported_weight_unit = 'K';
-        $this->request->shipment->service_type = $this->incomingData['serviceID'];
-        $this->request->shipment->shipper_num = APP_CANPAR_SHIPPER_NUMBER;
-        $this->request->shipment->shipping_date = $this->getShippingDate();
-        $this->request->shipment->user_id = APP_CANPAR_USER_ID;
-        $this->request->shipment->cod_type = 'N';
-        $this->request->shipment->collect = 0;
-        $this->request->shipment->nsr = 0;
+    	$this->request[] = new \SoapVar(APP_CANPAR_USER_ID, XSD_STRING, null, null, 'user_id' );
+    	$this->request[] = new \SoapVar(APP_CANPAR_PASSWORD, XSD_STRING, null, null, 'password' );
+    	$this->request[] = new \SoapVar($this->createShipment(), SOAP_ENC_OBJECT, null, null, 'shipment' );
 
         return $this->request;
+    }
+
+
+    private function createShipment() {
+
+    	$shipment = array();
+
+        $shipment['billed_weight'] = $this->incomingData['totalWeight'];
+        $shipment['billed_weight_unit'] = 'K';
+        $shipment['consolidation_type'] = 0;
+        $shipment['delivery_address'] = $this->getDeliveryAddress();
+        $shipment['dg'] = 0;
+        $shipment['dimention_unit'] = 'C';
+        $shipment['pickup_address'] = $this->getPickupAddress();
+        $shipment['reported_weight_unit'] = 'K';
+        $shipment['service_type'] = $this->incomingData['serviceID'];
+        $shipment['shipper_num'] = APP_CANPAR_SHIPPER_NUMBER;
+        $shipment['shipping_date'] = $this->getShippingDate();
+        $shipment['user_id'] = APP_CANPAR_USER_ID;
+        $shipment['cod_type'] = 'N';
+        $shipment['collect'] = 0;
+        $shipment['nsr'] = 0;
+
+        foreach ($this->incomingData['packages'] as $package) {
+        	$shipment[] = $this->populatePackage($package);
+        }
+
+        return $shipment;
     }
 
 
@@ -487,19 +508,16 @@ class Shipment {
     }
 
 
-    public function getPackages() {
+    private function populatePackage($item) {
 
 		$packages = new \stdClass();
-
-		// Temporally add only the first package
-		$item = $this->incomingData['packages'][0];
 
 		$packages->length = isset($item['length']) ? floatval($item['length']) : 0.0;
 		$packages->height = isset($item['height']) ? floatval($item['height']) : 0.0;
 		$packages->width = isset($item['width']) ? floatval($item['width']) : 0.0;
 		$packages->reported_weight = isset($item['weight']) ? floatval($item['weight']) : 0.0;
 
-		return $packages;
+		return new \SoapVar($packages, SOAP_ENC_OBJECT, null, null, 'packages' );
     }
 
 
@@ -519,9 +537,26 @@ class Shipment {
 		if(empty($this->voided)) {
 			return;
 		}
-		$this->db->query("UPDATE TrackingInfo 
-							SET  Void = 1 
-							WHERE TrackingIdentifier = '" . $this->voided . "' 
-							LIMIT 1"); 
+		$this->db->query("UPDATE TrackingInfo SET  Void = 1 WHERE TrackingIdentifier = '" . $this->voided . "' LIMIT 1");
 	}
+
+
+	private function extractFiles($labels, $type = 'label') {
+		$files = array();
+
+		if(is_array($labels) && $type == 'label') {
+
+			$package = 1;
+			foreach ($labels as $label) {
+			 	$files[] = getFilePathOnServer($label, $type, $package);
+			 	$package++;
+			}
+
+		} else {
+			$files[] = getFilePathOnServer($labels, $type);
+		}
+
+		return $files;
+	}
+	
 }
