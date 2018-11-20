@@ -1,5 +1,7 @@
 <?php 
 
+namespace Canpar;
+
 class Estimate {
 
     public $errors = array();

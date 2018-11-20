@@ -127,9 +127,11 @@ function getAdminLocationID($locationID = 0) {
 		return $locationID;
 	}
 
-	$result = mysql_query("SELECT LocationsID FROM Admin WHERE AdminID = " . $_SESSION['AdminID']);
+	$db = new Canpar\Database();
+
+	$result = $db->query("SELECT LocationsID FROM Admin WHERE AdminID = " . $_SESSION['AdminID']);
 	if($result) {
-		$row = mysql_fetch_assoc($result);
+		$row = $result->fetch_assoc();
 		$locationID = $row['LocationsID'];
 	}
 
@@ -142,9 +144,11 @@ function getAdminLocationID($locationID = 0) {
 
 function getShipperLocationID($locationID = 0) {
 
-	$result = mysql_query("SELECT LocationsID FROM Admin WHERE ShippingAccess = 1 AND AdminID = " . $_SESSION['AdminID']);
+	$db = new Canpar\Database();
+
+	$result = $db->query("SELECT LocationsID FROM Admin WHERE ShippingAccess = 1 AND AdminID = " . $_SESSION['AdminID']);
 	if($result) {
-		$row = mysql_fetch_assoc($result);
+		$row = $result->fetch_assoc();
 		$locationID = $row['LocationsID'];
 	}
 
@@ -180,9 +184,11 @@ function setShipmentVoidedInDB($ShipmentData) {
 
 	$pin = !empty($ShipmentData['pin']) ? $ShipmentData['pin'] : '';
 
-	if(!empty($pin)) {
 
-		mysql_query("UPDATE TrackingInfo SET  Void = 1 WHERE TrackingCode = '" . $pin . "' LIMIT 1");
+	if(!empty($pin)) {
+		
+		$db = new Canpar\Database();
+		$db->query("UPDATE TrackingInfo SET  Void = 1 WHERE TrackingCode = '" . $pin . "' LIMIT 1");
 	}
 }
 

@@ -4,6 +4,14 @@ namespace Canpar;
 
 class Customer {
 
+	private $db;
+
+
+    public function __construct() {
+
+		$this->db = new Database();
+    }
+
 
 	public function getByOrderId($id) {
 

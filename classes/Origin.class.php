@@ -3,11 +3,13 @@
 namespace Canpar; 
 
 class Origin {
-
+	
+	private $db;
     private $incomingData;
 
     public function __construct($incomingData = '') {
 
+		$this->db = new Database();
         $this->incomingData = $incomingData;
     }
 

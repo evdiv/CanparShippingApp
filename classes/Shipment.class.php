@@ -23,6 +23,8 @@ class Shipment {
 
 	public function __construct($incomingData = '') {
 
+		$this->db = new Database();
+
 		$this->incomingData = $incomingData;
 		$this->soap = $this->createClient();
 
@@ -37,7 +39,7 @@ class Shipment {
 		$this->populateRequest();
 
 		try {
-			$this->response = $this->soap->processShipment( new SoapVar($this->request, SOAP_ENC_OBJECT) );
+			$this->response = $this->soap->processShipment( new \SoapVar($this->request, SOAP_ENC_OBJECT) );
 
 			if($this->debug) {  
 	        	echo '<p>Request in Create</p>';
@@ -558,5 +560,5 @@ class Shipment {
 
 		return $files;
 	}
-	
+
 }
