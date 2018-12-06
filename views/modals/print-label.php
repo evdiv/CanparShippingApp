@@ -30,7 +30,7 @@
 						<img style="max-width: 100%; margin-bottom: 50px;" :src="storedLabel" alt="Shipping Label" />
 	
 						<button type="button" class="btn btn-primary btn-block"  
-			    				v-on:click="printLabel(storedLabel)">Print</button>
+			    				v-on:click="printLabel(storedLabel)">Print {{ storedLabel }}</button>
 					</div>
 
 			    </div>

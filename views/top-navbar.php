@@ -1,18 +1,16 @@
 <div class="container-fluid">
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-
 		<div class="container">
+
 			<a class="navbar-brand" href="//<?= APP_URL ?>" target="_blank">
-				Company Logo
+				<img src="//<?= APP_URL ?>/images/logo.png" height="24px">
 			</a>
 
-			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" 
-					aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-			    	<span class="navbar-toggler-icon"></span>
-			</button>
-
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+			    <span class="navbar-toggler-icon"></span></button>
 
 			<div class="collapse navbar-collapse" id="navbarSupportedContent">
+
 			    <ul class="navbar-nav mr-auto">
 				    <li class="nav-item active">
 				        <a class="nav-link" href="http://www.canpar.com/en/home.jsp" target="_blank">
@@ -21,11 +19,8 @@
 				    </li>
 			    </ul>
 
-				<div class="my-2 my-lg-0">
 
-					<button type="button" class="btn btn-warning btn-sm" 
-					v-on:click="location.href='/canpar/'">Create New</button>
-					
+				<div class="my-2 my-lg-0">
 
 					<button type="button" class="btn btn-info btn-sm" 
 						v-on:click="displayRates" 
@@ -41,11 +36,12 @@
 					<button type="button" class="btn btn-secondary btn-sm" 
 								data-toggle="modal" 
 								data-target="#endOfDayModal"  
-				          		href="#"> End of the Day</button>	
+				          		href="#"> End of the Day</button>
+				          			
+				</div><!--/.my-2 my-lg-0-->
 
-				</div><!--/.my-2 my-lg-0 -->
-	  		</div><!-- /#navbarSupportedContent -->
+	  		</div><!-- /#navbarSupportedContent-->
+
 		</div><!-- /.container -->
-
 	</nav>
-</div><!-- /.container-fluid -->
+</div>

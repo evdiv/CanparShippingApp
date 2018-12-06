@@ -564,7 +564,7 @@ var app = new Vue({
 							if( response.data.errors.length === 0 ) {
 								self.labels = response.data.labels;
 
-								self.dl('Labels:');
+								self.dl('In the createShipment AJAX Response, Labels:');
 								self.dl(self.labels);
 
 								self.getOrders();
@@ -632,7 +632,8 @@ var app = new Vue({
 
 					printLabel: function(label) {
 
-						label = label || this.labels;
+						this.dl("In the printLabel, label:");
+						this.dl(label);
 
     					var labelImage = window.open(label);
     					labelImage.window.print();

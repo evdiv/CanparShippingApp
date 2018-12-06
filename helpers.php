@@ -2,20 +2,43 @@
 
 //Functions ////////////////////////////////////////////////////
 
+
 //Define autoloader 
-function __autoload($className) { 
+function __autoload($className) {
+	
 	$className = explode('\\', $className);
 	$filePath = './classes/' . end($className) . '.class.php';
-    if (file_exists($filePath)) { 
-        require_once $filePath; 
-        return true; 
+
+    if (file_exists($filePath)) {
+        require_once $filePath;
+        return true;
     } 
-    return false; 
+
+    return false;
 } 
+
+//Peventing access for unregistered users
+function redirectIfGuest() {
+
+	if(empty($_SESSION['AdminID'])) {
+		header("location: /index.php?msg=timeout");
+		exit;
+	} 
+}
+
+
+function getIncomingJson() {
+
+	$jsonData = json_decode(trim(file_get_contents('php://input')), true);
+
+	return filter_var_array($jsonData, FILTER_SANITIZE_STRING); 
+}
 
 
 function getFromRequest($name) {
+
 	$value = !empty($_GET[$name]) ? $_GET[$name] : '';
+
 	if (empty($value)) {
 		$value = !empty($_POST[$name]) ? $_POST[$name] : '';
 	}
@@ -24,7 +47,9 @@ function getFromRequest($name) {
 
 
 function getIncomingString($name, $default = "") {
+
 	$value = getFromRequest($name);
+
 	if(!is_string($value) || empty(trim($value))) {
 		return $default;
 	}
@@ -33,18 +58,13 @@ function getIncomingString($name, $default = "") {
 
 
 function getIncomingInt($name, $default = 0) {
+
 	$value = getFromRequest($name);
+
 	if (!is_numeric($value) || empty($value)) {
 		return $default;
 	}
 	return (int)$value;	
-}
-
-
-function getIncomingJson() {
-	$jsonData = json_decode(trim(file_get_contents('php://input')), true);
-
-	return filter_var_array($jsonData, FILTER_SANITIZE_STRING); 
 }
 
 
@@ -62,7 +82,6 @@ function getPhone($phone) {
 	}
 
 	$phone = preg_replace('/[^0-9]/', '', $phone);
-
 	return substr($phone, 3);
 }
 
@@ -89,12 +108,14 @@ function getStreetName($address) {
 	return implode(' ', $addressArray);
 }
 
+
 function getAdditionalAddressLine($address) {
 	$strToRemove = array("-", "_", "#", ")", "(", ",");
 	$address = trim(str_replace($strToRemove, " ", $address));
 
 	return $address;
 }
+
 
 function getPostalCode($postalCode) {
 	$strToRemove = array("-", "_", "#", ")", "(", ",", " ");
@@ -105,16 +126,9 @@ function getPostalCode($postalCode) {
 
 
 function getCorrectCityName($city) {
-	$strToRemove = array("Head Office", 
-						"Distribution Centre",
-						"Warehouse", 
-						"Band Repair Office", 
-						")", 
-						"("
-					);
+	$strToRemove = array("Head Office", "Distribution Centre", "Warehouse", "Band Repair Office", ")", "(");
 
 	$city = str_replace($strToRemove, "", $city);
-
 	$city = str_replace("Web Store", "Pickering", $city);
 
 	return trim($city);
@@ -127,67 +141,40 @@ function getAdminLocationID($locationID = 0) {
 		return $locationID;
 	}
 
-	$db = new Canpar\Database();
+	$db = new Purolator\Database();
 
 	$result = $db->query("SELECT LocationsID FROM Admin WHERE AdminID = " . $_SESSION['AdminID']);
+
 	if($result) {
 		$row = $result->fetch_assoc();
 		$locationID = $row['LocationsID'];
 	}
-
-	//Set Location to WebStore if it is Pickering (Head Office)
-	$locationID = ($locationID == 64) ? 76 : $locationID;
 
 	return $locationID;
 }
 
 
 function getShipperLocationID($locationID = 0) {
-
 	$db = new Canpar\Database();
 
 	$result = $db->query("SELECT LocationsID FROM Admin WHERE ShippingAccess = 1 AND AdminID = " . $_SESSION['AdminID']);
+	
 	if($result) {
 		$row = $result->fetch_assoc();
 		$locationID = $row['LocationsID'];
 	}
 
-	//Set Location to WebStore if it is Pickering (Head Office)
-	$locationID = ($locationID == 64) ? 76 : $locationID;
-
 	return $locationID;
-}
-
-
-
-
-function redirectIfGuest() {
-
-	if(empty($_SESSION['AdminID'])) {
-		header("location: //manager.long-mcquade.com/index.php?msg=timeout");
-		exit;
-	} 
-}
-
-
-function isAxeAccount() {
-	
-	$Admin = new Admin();
-	$Admin->AdminID = ForceInt($_SESSION['AdminID'], 0); 
-	$Admin->GetMe();
-
-	return $Admin->AxeAccount;
 }
 
 
 function setShipmentVoidedInDB($ShipmentData) {
 
 	$pin = !empty($ShipmentData['pin']) ? $ShipmentData['pin'] : '';
-
+	$db = new Canpar\Database();
 
 	if(!empty($pin)) {
-		
-		$db = new Canpar\Database();
+
 		$db->query("UPDATE TrackingInfo SET  Void = 1 WHERE TrackingCode = '" . $pin . "' LIMIT 1");
 	}
 }
@@ -240,7 +227,7 @@ function getServiceNameById($id) {
 }
 
 
-// Helper function dump and die, for debugging.
+// Helper function dump and die.
 function dd($data) {
 	echo '<pre>', var_dump($data), '</pre>';
 	exit;

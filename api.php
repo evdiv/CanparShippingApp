@@ -23,7 +23,6 @@ if($jsonData['action'] == "getLocations") {
 
 } elseif($jsonData['action'] == "getSenderLocation") {
 
-
 	$id = !empty($jsonData['Id']) ? $jsonData['Id'] : getAdminLocationID(DEFAULT_LOCATION_ID);
 	$location = (new Canpar\Origin())->getById($id);
 
@@ -36,6 +35,7 @@ if($jsonData['action'] == "getLocations") {
 } elseif($jsonData['action'] == "getReceiverByOrderId") {
 
 	$receiver = (new Canpar\Customer())->getByOrderId($jsonData['orderID']);
+
    	echo json_encode(array('receiver' => $receiver));
 
 
@@ -45,6 +45,7 @@ if($jsonData['action'] == "getLocations") {
 } elseif($jsonData['action'] == "getSenderByOrderId") {
 
 	$location = (new Canpar\Origin())->getByOrderId($jsonData['orderID']);
+
     echo json_encode(array('sender' => $location));
 
 
@@ -56,7 +57,10 @@ if($jsonData['action'] == "getLocations") {
 	$Estimate = new Canpar\Estimate($jsonData);
 	$Estimate->getServicesWithRates();
 
-	echo json_encode(array('services' => $Estimate->services, 'errors' => $Estimate->errors));
+	echo json_encode(array(
+						'services' => $Estimate->services, 
+						'errors' => $Estimate->errors
+					));
 
 
 //***************************************************
@@ -67,21 +71,27 @@ if($jsonData['action'] == "getLocations") {
 	$Shipment = new Canpar\Shipment($jsonData);
 	$Shipment->getShippingBoxes();
 
-	echo json_encode(array('boxes' => $Shipment->getShippingBoxes(), 'errors' => $Shipment->errors));
+	echo json_encode(array(
+						'boxes' => $Shipment->getShippingBoxes(), 
+						'errors' => $Shipment->errors
+					));
 
 
 //***************************************************
-// Create Canpar Shipment and receive Labels
+// Create Shipment and receive Labels
 
 } elseif($jsonData['action'] == "createShipment") {
 
+
 	$Shipment = new Canpar\Shipment($jsonData);
 	$Shipment->create();
-
 	$Shipment->getLabels();
 	$Shipment->store(); 
 
-	echo json_encode(array('labels' => $Shipment->labels, 'errors' => $Shipment->errors)); 
+	echo json_encode(array(
+						'labels' => $Shipment->labels, 
+						'errors' => $Shipment->errors
+					)); 
 
 
 //***************************************************
@@ -97,7 +107,10 @@ if($jsonData['action'] == "getLocations") {
 	$Shipment = new Canpar\Shipment($jsonData);
 	$Shipment->void();
 
-	echo json_encode(array('voided' => $Shipment->voided, 'errors' => $Shipment->errors));
+	echo json_encode(array(
+						'voided' => $Shipment->voided, 
+						'errors' => $Shipment->errors
+					));
 
 
 //***************************************************
@@ -120,7 +133,8 @@ if($jsonData['action'] == "getLocations") {
 	$Shipment = new Canpar\Shipment();
 	$Shipment->endOfDay();
 
-	echo json_encode(array('manifestNumber' => $Shipment->manifest_num, 'errors' => $Shipment->errors));
+	echo json_encode(array('manifestNumber' => $Shipment->manifest_num, 
+							'errors' => $Shipment->errors));
 
 
 //***************************************************
@@ -132,7 +146,8 @@ if($jsonData['action'] == "getLocations") {
 	$Shipment = new Canpar\Shipment($jsonData);
 	$Shipment->getManifest();
 
-	echo json_encode(array('manifest' => $Shipment->manifest,  'errors' => $Shipment->errors));
+	echo json_encode(array('manifest' => $Shipment->manifest,  
+							'errors' => $Shipment->errors));
 
 
 //***************************************************
@@ -143,7 +158,10 @@ if($jsonData['action'] == "getLocations") {
 	$date = (empty($jsonData['date']) || $jsonData['date'] === "Invalid date") ? date('Y-m-d') : $jsonData['date'];
 	$Shipment = new Canpar\Shipment();
 
-	echo json_encode(array('shipments' => $Shipment->getByDate($date), 'errors' => $Shipment->errors));
+	echo json_encode(array(
+						'shipments' => $Shipment->getByDate($date), 
+						'errors' => $Shipment->errors
+					));
 
 
 //***************************************************
@@ -153,5 +171,8 @@ if($jsonData['action'] == "getLocations") {
 
 	$Shipment = new Canpar\Shipment();
 
-	echo json_encode(array('shipment' => $Shipment->getByTrackingNumber($jsonData['pin']), 'errors' => $Shipment->errors));
+	echo json_encode(array(
+						'shipment' => $Shipment->getByTrackingNumber($jsonData['pin']), 
+						'errors' => $Shipment->errors
+					));
 } 

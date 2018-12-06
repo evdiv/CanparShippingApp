@@ -21,11 +21,33 @@ define('DB_COLLATE', '');
 
 
 //************************************
-//Canpar Credentials and Options
+//Canpar Credentials
 
 define("CANPAR_USER_ID", '');
 define("CANPAR_SHIPPER_NUMBER", '');
 define("CANPAR_PASSWORD", ''); 
+
+
+//************************************
+//Canpar Shipping Options
+
+define("CANPAR_COUNTRY_CODE", "CA");
+define("CANPAR_COUNTRY_NAME", "Canada");
+define("CANPAR_PAYMENT_INFO_TYPE", "C");
+define("CANPAR_MANIFEST_TYPE", "S");
+define("CANPAR_BILLED_WEIGHT_UNIT", "K"); // K/L
+define("CANPAR_DIMENTION_UNIT", "C"); // C/I
+define("CANPAR_CONSOLIDATION_TYPE", 0);
+define("CANPAR_DG", 0); // Dangerous Goods
+define("CANPAR_REPORTED_WEIGHT_UNIT", "K");
+define("CANPAR_COD_TYPE", "N");
+define("CANPAR_COLLECT", 0);
+define("CANPAR_NSR", 0); //No Signature required
+
+
+//*************************************
+//Canpar Added Charges
+
 define("CANPAR_RESIDENTIAL_CHARGES", 3.25);
 define("CANPAR_FUEL_SURCHARGE", 0.24);
 define("CANPAR_APPLY_DISCOUNTS", '0');
