@@ -26,6 +26,15 @@ class Database {
 	}
 
 
+	public function escape($string = ''){
+		if(empty($string)) {
+			return '';
+		}
+		$db = $this->connect();
+		return $db->real_escape_string($string); 
+	}
+
+
 	public function query($query) {
 
 		$db = $this->connect();
@@ -33,5 +42,27 @@ class Database {
 
 		return ($db->errno) ? false : $result;
 	}
+
+
+	public function select($query = ''){
+		$rows = array();
+		$result = $this->query($query);
+
+		if(!$result) {
+			return $rows;
+		} 
+
+		while($row = $result->fetch_assoc()) {
+			$rows[] = $row;
+		}
+
+		return $rows;
+	}
+
+
+	public function selectFirst($query = ''){
+		$rows = $this->select($query);
+		return !empty($rows) ? $rows[0] : array();
+	}		
 
 }
