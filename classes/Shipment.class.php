@@ -407,6 +407,26 @@ class Shipment {
 	}
 
 
+	public static function getServiceNameById($id = 0) {
+		$serviceLabels = array(
+	        '1' => 'Ground',
+	        '2' => 'USA Ground',
+	        '3' => 'Select Letter',
+	        '4' => 'Select Pak',
+	        '5' => 'Select Parcel',
+	        'C' => 'Express Letter',
+	        'D' => 'Express Pak',
+	        'E' => 'Express Parcel',
+	        'F' => 'USA Select Letter',
+	        'G' => 'USA Select Pak',
+	        'H' => 'USA Select Parcel',
+	        'I' => 'International'
+	    );
+
+	    return isset($serviceLabels[$id]) ? $serviceLabels[$id] : 'N/A';
+	}
+
+
 	private function createClient() {
         $client = null;
         $SOAP_OPTIONS = array(

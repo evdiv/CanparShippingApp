@@ -6,56 +6,46 @@ class Estimate {
 
     public $errors = array();
 	public $services = array();
-
-	private $incomingData;
-	private $soap;
-	private $availableServiceObjects = array();
-
-    public $residentialCharges = CANPAR_RESIDENTIAL_CHARGES;
-    public $fuelSurcharge = CANPAR_FUEL_SURCHARGE;
-    public $applyDiscounts = CANPAR_APPLY_DISCOUNTS;
    	public $shippingDate = null;
    	public $pickupAddress = array();
     public $deliveryAddress = array();
     public $pieces = array();
 
-    public $debug  = false;
+    private $incomingData;
+    private $soap;
+    private $availableServices = array();
 
 
 	public function __construct($incomingData = '') {
 		$this->incomingData = $incomingData;
 		$this->soap = $this->createPWSSOAPClient();
-
-        $this->setShippingDate();
-        $this->setPickupAddress();
-        $this->setDeliveryAddress();
-        $this->setPieces();
+        $this->shippingDate = $this->setShippingDate();
+        $this->deliveryAddress = $this->setPickupAddress();
+        $this->pickupAddress = $this->setDeliveryAddress();
+        $this->pieces = $this->setPieces();
 	}
 
 
     public function getServicesWithRates() {
-    	if($this->debug) {echo '<p>In getServicesWithRates()</p>';}
-
-        $this->getAvailableServices();
-        $this->calculateShipping();
+        $this->availableServices = $this->getAvailableServices();
+        $this->services = $this->calculateShipping();
 
         return $this->services;
     }
 
 
-
 	public function getCheapestRate() {
-        $rate = 0;
 
-        $this->getAvailableServices();
-        $this->calculateShipping();
+        $this->availableServices = $this->getAvailableServices();
+        $this->services = $this->calculateShipping();
 
        	if(count($this->services) > 0) {
-            $rate = $this->compareShippingRates();
+            $rate = $this->compareShippingRates($this->services);
         }
 
-        return $rate;
+        return !empty($rate) ? $rate : 0;
     }
+
 
 
 	private function createPWSSOAPClient() {
@@ -72,124 +62,111 @@ class Estimate {
 		try{
 			$client = new \SoapClient(CANPAR_RATING_URL, $SOAP_OPTIONS);
         } catch(SoapFault $e){
-            echo $e;
-            exit;
+            $this->errors[] =$e;
 		}
         return $client;
 	}
 
 
-    private function setShippingDate ($lead_time = '0') {
+    private function setShippingDate ($leadTime = '0') {
         // Get the current date, plus lead time specified
-        $time = strtotime("+" . $lead_time . " weekdays");
-        $this->shippingDate = date('Y-m-d\T00:00:00.000\Z', $time);
+        $time = strtotime("+" . $leadTime . " weekdays");
+        return date('Y-m-d\T00:00:00.000\Z', $time);
 
-        return $this->shippingDate;
     }
 
 
     private function setDeliveryAddress() {
-    	$addressLine = sanitize($this->incomingData['receiverStreetNumber'] . ' ' . $this->incomingData['receiverStreetName']);
 
-        $this->deliveryAddress['address_line_1'] = $addressLine;
-        $this->deliveryAddress['city'] = sanitize($this->incomingData['receiverCity']);
-        $this->deliveryAddress['country'] = 'CA';
-        $this->deliveryAddress['name'] = 'Canada';
-        $this->deliveryAddress['postal_code'] = str_replace(' ' , '', $this->incomingData['receiverPostalCode']);
-        $this->deliveryAddress['province'] = $this->incomingData['receiverProvince'];  
+        $addr = array('country' => 'CA', 'name' => 'Canada');
+        $addr['address_line_1'] = Common::fixAccents($this->incomingData['receiverStreetNumber'] . ' ' . $this->incomingData['receiverStreetName']);
+        $addr['city'] = Common::fixAccents($this->incomingData['receiverCity']);
+        $addr['postal_code'] = str_replace(' ' , '', $this->incomingData['receiverPostalCode']);
+        $addr['province'] = $this->incomingData['receiverProvince'];  
 
-        return $this->deliveryAddress;
+        return $addr;
     }
 
 
     private function setPickupAddress() {
-    	$addressLine = sanitize($this->incomingData['senderStreetNumber'] . ' ' . $this->incomingData['senderStreetName']);
 
-    	$this->pickupAddress['address_line_1'] = $addressLine;
-    	$this->pickupAddress['city'] = $this->incomingData['senderCity'];
-    	$this->pickupAddress['country'] = "CA";
-        $this->pickupAddress['name'] = "Canada";
-        $this->pickupAddress['postal_code'] = str_replace(' ', '', $this->incomingData['senderPostalCode']);
-        $this->pickupAddress['province'] = $this->incomingData['senderProvince'];
+        $addr = array('country' => 'CA', 'name' => 'Canada');
+    	$addr['address_line_1'] = Common::fixAccents($this->incomingData['senderStreetNumber'] . ' ' . $this->incomingData['senderStreetName']);
+    	$addr['city'] = Common::fixAccents($this->incomingData['senderCity']);
+        $addr['postal_code'] = str_replace(' ', '', $this->incomingData['senderPostalCode']);
+        $addr['province'] = $this->incomingData['senderProvince'];
 
-        return $this->pickupAddress;	
+        return $addr;	
     }
 
 
     public function setPieces() {
-    	$counter = 0;
+        $pieces = array();
     	foreach($this->incomingData['packages'] as $package){
 
 			$weight = round($package['weight'], 0) < 1 ? 1 : $package['weight'];
-			$this->pieces[] = array(
-						'height' => $package['height'],
-						'width' =>  $package['width'],
-						'length' => $package['length'],
-						'reported_weight' => $weight);
+			$pieces[] = array(
+    						'height' => $package['height'],
+    						'width' =>  $package['width'],
+    						'length' => $package['length'],
+    						'reported_weight' => $weight);
 		}
 
-		return $this->pieces;
+		return $pieces;
     }
 
 
     private function getAvailableServices() {
-    	if($this->debug) {echo '<p>In getAvailableServices()</p>';}
 
         // Get the available services
         $request = array(
             'delivery_country'    => 'CA',
-            'delivery_postal_code'=> $this->incomingData['receiverPostalCode'],
-            'password'            => CANPAR_PASSWORD,
-            'pickup_postal_code'  => $this->incomingData['senderPostalCode'],
-            'shipper_num'         => CANPAR_SHIPPER_NUMBER,
             'shipping_date'       => $this->shippingDate,
+            'delivery_postal_code'=> $this->incomingData['receiverPostalCode'],
+            'pickup_postal_code'  => $this->incomingData['senderPostalCode'],
+            'password'            => CANPAR_PASSWORD,
+            'shipper_num'         => CANPAR_SHIPPER_NUMBER,
             'user_id'             => CANPAR_USER_ID
         );
-    	if($this->debug) {echo '<pre>', print_r($request), '</pre>';}
 
         // Execute the request
         $result = $this->soap->getAvailableServices(array('request'=>$request));
-        if($this->debug) {echo '<pre>', var_dump($result), '</pre>';}
-
-        $this->availableServiceObjects = $result->return->getAvailableServicesResult;
-        if($this->debug) {echo '<pre>', print_r($this->availableServiceObjects), '</pre>';}
-
-        
-        return $this->availableServiceObjects;
+        return $result->return->getAvailableServicesResult;
     }
 
 
-    private function compareShippingRates() {
-
-		$ratesArray = $this->services;
+    private function compareShippingRates($rates = array()) {
 		
         //Remove charges equal to 0
-        for($i=0; $i < count($ratesArray); $i++) {
-            $ratesArray[$i]['charge'] = !empty($ratesArray[$i]['charge']) ? (float) $ratesArray[$i]['charge'] : 0;
-            if(empty($ratesArray[$i]['charge'])) { unset($ratesArray[$i]); }
+        for($i=0; $i < count($rates); $i++) {
+            $rates[$i]['charge'] = !empty($rates[$i]['charge']) ? (float) $rates[$i]['charge'] : 0;
+            if(empty($rates[$i]['charge'])) { unset($rates[$i]); }
         }
-        $ratesArray = array_values($ratesArray);
+        $rates = array_values($rates);
 
-
-        if(count($ratesArray) > 1) {
-
-            // Obtain a list of columns
-            foreach ($ratesArray as $key => $row) {
-                $charge[$key]  = $row['charge'];
-            }
-
-            // Sort the data in ascending order
-            array_multisort($charge, SORT_ASC, $ratesArray);
+        if(count($rates) < 2) {
+            $rates[0]['charge'];
         }
 
-        return $ratesArray[0]['charge'];
+        // Obtain a list of columns
+        $charges = array();
+        foreach ($rates as $key => $row) {
+            $charges[$key]  = $row['charge'];
+        }
+
+        // Sort the data in ascending order
+        array_multisort($charges, SORT_ASC, $rates);
+
+        return $rates[0]['charge'];
     }
 
 
-    private function calculateShipping () {
+    private function calculateShipping() {
+
+        $servicesWithRates = array();
 
         // Get the rate for each service
-        foreach ($this->availableServiceObjects as $service) {
+        foreach ($this->availableServices as $service) {
 
             $request = $this->createShipmentRequest($service->type);
             $result = $this->soap->rateShipment(array('request'=>$request));
@@ -205,40 +182,41 @@ class Estimate {
             $rate = json_decode(json_encode($rate), true);
 
             // Calculate the totals
-            $total_charge = 0;
+            $totalCharge = 0;
             foreach ($rate AS $index=>$value) {
 				//Find charges, exclude taxes
 				if ((strpos($index, '_charge') || strpos($index, 'surcharge')) && strpos($index, 'tax_') === false) {
-					$total_charge += (float) $value;
+					$totalCharge += (float) $value;
 				}
             }
 
-            $total_charge = round($total_charge,2);
+            $totalCharge = round($totalCharge, 2);
+
             
-            $this->services[] = array(
+            $servicesWithRates[] = array(
                 'service_type' => $service->type,
-                'service_name' => getServiceNameById($service->type), 
-                'charge' => $total_charge + $this->ResidentialCharges + $this->FuelSurcharge//Add Residential Charges
+                'service_name' => Shipment::getServiceNameById($service->type), 
+                'charge' => $totalCharge + CANPAR_RESIDENTIAL_CHARGES + CANPAR_FUEL_SURCHARGE //Add Residential and Fuel Surcharges
             );
         } // end foreach
 
-        return $this->services;
+        return $servicesWithRates;
     }
 
 
     private function createShipmentRequest($serviceType) {
         // Build the shipment
         $shipment = array(
-            'delivery_address' => $this->deliveryAddress,
-            'dg' => 0, // Dangerous Goods
-            'dimention_unit' => 'C', // C/I
             'packages' => $this->pieces,
             'pickup_address' => $this->pickupAddress,
-            'reported_weight_unit' => 'K', // K/L.
+            'delivery_address' => $this->deliveryAddress,
             'service_type' => $serviceType,
-            'shipper_num' => CANPAR_SHIPPER_NUMBER,
             'shipping_date' => $this->shippingDate,
+            'shipper_num' => CANPAR_SHIPPER_NUMBER,
             'user_id' => CANPAR_USER_ID,
+            'dg' => 0, // Dangerous Goods
+            'dimention_unit' => 'C', // C/I
+            'reported_weight_unit' => 'K', // K/L.
             'cod_type' => 'N',
             'collect' => 0,
             'nsr' => 0
@@ -260,16 +238,15 @@ class Estimate {
 
    	private function isError($result) {
 
-        $error = false;
+        $this->errors = array();
+
         if(!empty($result->return->error)) {
             $this->errors[] = $result->return->error;
-            $error = true;
 
         } elseif( isset($result->return->processShipmentResult->errors[0]) && !empty($result->return->processShipmentResult->errors[0])) {
             $this->errors[] = $result->return->processShipmentResult->errors[0];
-            $error = true;
         }
 
-        return $error;
+        return count($this->errors) > 0;
     }
 }
