@@ -18,7 +18,6 @@ class Shipment {
 	public $manifest = '';	
 
 	public $errors = array();
-    public $debug  = false;
 
 
 	public function __construct($incomingData = '') {
@@ -41,14 +40,6 @@ class Shipment {
 		try {
 			$this->response = $this->soap->processShipment( new \SoapVar($this->request, SOAP_ENC_OBJECT) );
 
-			if($this->debug) {  
-	        	echo '<p>Request in Create</p>';
-	        	echo '<pre>', print_r($this->request), '</pre>';
-
-	        	echo '<p>Response in Create</p>';
-	        	echo '<pre>', print_r($this->response), '</pre>';
-	        }
-
 		} catch(Exception $e) {
 			$this->errors[] = "Exception:" . $e;
 		}
@@ -70,14 +61,6 @@ class Shipment {
 			//Store Labels on server
 			$this->labels = $this->extractFiles($response->labels);
 
-			if($this->debug) {  
-	        	echo '<p>Request in getLabels</p>';
-	        	echo '<pre>', print_r($request), '</pre>';
-
-	        	echo '<p>Response in getLabels</p>';
-	        	echo '<pre>', print_r($response), '</pre>';
-	        }
-
 		} catch (Exception $e) {
 			$this->errors[] = "Exception:" . $e;
 		}
@@ -93,42 +76,35 @@ class Shipment {
 			return;
 		}
 
-		$adminID = !empty($_SESSION['AdminID']) ? $_SESSION['AdminID'] : 0;
-		$orderID = !empty($this->incomingData['orderID']) ? $this->incomingData['orderID'] : '';
-		$locationCode = !empty($this->incomingData['senderLocationCode']) ? $this->incomingData['senderLocationCode'] : '';
-
+		$orderID = !empty($this->incomingData['orderID']) ? $this->incomingData['orderID'] : 0;
+		$locationID = !empty($this->incomingData['senderLocationID']) ? $this->incomingData['senderLocationID'] : 0;
 		$shipment = $this->response->processShipmentResult->shipment;
-		$courierService = getServiceNameById($shipment->service_type);
+		$courierService = self::getServiceNameById($shipment->service_type);
 
 
 		foreach ($shipment->packages as $key => $package) {
 			
 			$barcode = !empty($package->barcode) ? $package->barcode : '';
 
-			$height = !empty($package->height) ? $package->height : 0.0;
-			$length = !empty($package->length) ? $package->length : 0.0;
-			$width = !empty($package->width) ? $package->width : 0.0;
-			$weight = !empty($package->reported_weight) ? $package->reported_weight : 0.0;
+			$height = !empty($package->height) ? $package->height : 0;
+			$length = !empty($package->length) ? $package->length : 0;
+			$width = !empty($package->width) ? $package->width : 0;
+			$weight = !empty($package->reported_weight) ? $package->reported_weight : 0;
 
 
 			//Add Tracking Number
 			$this->db->query("INSERT INTO TrackingInfo SET 
-				OrderID = '" . $orderID . "', 
+				OrderID = '" . intval($orderID) . "', 
+				LocationID = '" . intval($locationID) . "',  
 				TrackingCarrierID = 3, 
-				TrackingCode = '" . $barcode . "', 
-				LocationCode = '" . $locationCode . "',  
-				AdminID = " . $adminID . ", 
-				Length = " . $length . ", 
-				Width = " . $width . ", 
-				Height = ". $height . ", 
-				Weight = " . $weight . ", 
-				Label = '" . $this->labels[$key] . "',
+				TrackingCode = '" . $this->db->escape($barcode) . "', 
+				Length = " . floatval($length) . ", 
+				Width = " . floatval($width) . ", 
+				Height = ". floatval($height) . ", 
+				Weight = " . floatval($weight) . ", 
+				Label = '" . $this->db->escape($this->labels[$key]) . "',
 				CourierService = '" . $courierService . "'");	
 		}
-
-		// Add Note to the order
-    	$this->db->query("INSERT INTO OrdersNotes (AdminID, OrderID, Note, NoteDate)
-            VALUES ({$adminID}, {$orderID}, 'Shipment created', Now())"); 
 	}
 
 
@@ -143,14 +119,6 @@ class Shipment {
 
         try {
             $response = $this->soap->voidShipment($request);
-
-			if($this->debug) {  
-	        	echo '<p>Request in voidShipment</p>';
-	        	echo '<pre>', print_r($request), '</pre>';
-
-	        	echo '<p>Response in voidShipment</p>';
-	        	echo '<pre>', print_r($response), '</pre>';
-	        }
 
         } catch(Exception $e) {
             $this->errors[] = "Exception:" . $e;
@@ -183,14 +151,6 @@ class Shipment {
 		try {
             $response = $this->soap->endOfDay($request);
 
-			if($this->debug) {  
-	        	echo '<p>Request in endOfDay</p>';
-	        	echo '<pre>', print_r($request), '</pre>';
-
-	        	echo '<p>Response in endOfDay</p>';
-	        	echo '<pre>', print_r($response), '</pre>';
-	        }
-
         } catch(Exception $e) {
             $this->errors[] = "Exception:" . $e;
         }
@@ -220,14 +180,6 @@ class Shipment {
         try {
             $response = $this->soap->getManifest($request);
 
-			if($this->debug) {  
-	        	echo '<p>Request in getManifest</p>';
-	        	echo '<pre>', print_r($request), '</pre>';
-
-	        	echo '<p>Response in getManifest</p>';
-	        	echo '<pre>', print_r($response), '</pre>';
-	        }
-
         } catch(Exception $e) {
             $this->errors[] = "Exception:" . $e;
         }
@@ -235,7 +187,7 @@ class Shipment {
        	if(empty($response->error)) {
 
         	//Store Manifest on server
-			$this->manifest = extractFiles($response->manifest, 'manifest');
+			$this->manifest = $this->extractFiles($response->manifest, 'manifest');
         	$this->updateAsProccessedInDB();
        
         } else {
@@ -260,12 +212,11 @@ class Shipment {
 		if (empty($this->manifest_num)) {
 			return;
 		}
-		$date = date('Y-m-d');
 
 		$this->db->query("UPDATE TrackingInfo 
 						SET Status = 1 
 						WHERE TrackingCarrierID = 3
-						AND DATE(DateAdded) = '" . $date . "'");
+						AND DATE(DateAdded) = '" . date('Y-m-d') . "'");
 	}
 
 
@@ -285,32 +236,30 @@ class Shipment {
 
 		// Since the Pickering(Distribution Centre) has the same Location Code as Yorkville (l000) 
 		// exclude it for preventing duplication in history view
-		$result = $this->db->query("SELECT t.*, l.LocationsID FROM TrackingInfo AS t, Locations AS l 
+		$rows = $this->db->select("SELECT t.*, l.LocationsID FROM TrackingInfo AS t, Locations AS l 
 								WHERE t.LocationCode = l.LocationCode
 								" . $shipperLocationSQL . "
 								AND t.TrackingCarrierID = 3
-								AND l.LocationsID <> 65
 								AND DATE(t.DateAdded) = '" . $date . "'
 								ORDER BY t.OrderID DESC, t.TrackingCode");
 
-		if($result) {
-			while($row = $result->fetch_assoc()) {
-
-				$shipments[] = array(
-
-					'Id' => $row['TrackingInfoID'],
-					'canparShipmentId' => $row['TrackingIdentifier'],
-					'orderId' => $row['OrderID'],
-					'locationId' => $row['LocationsID'],
-					'pin' => $row['TrackingCode'],
-					'date' => $row['DateAdded'],
-					'void' => $row['Void'],
-					'label' => $row['Label'],
-					'locationCode' => $row['LocationCode']
-				);
-			}
-		} else {
+		if(empty($rows)) {
 			$this->errors[] = 'Can not find Shipment for the Selected Date';
+			return array();
+		}
+
+		foreach ($rows as $row) {
+			$shipments[] = array(
+				'Id' => $row['TrackingInfoID'],
+				'canparShipmentId' => $row['TrackingIdentifier'],
+				'orderId' => $row['OrderID'],
+				'locationId' => $row['LocationsID'],
+				'pin' => $row['TrackingCode'],
+				'date' => $row['DateAdded'],
+				'void' => $row['Void'],
+				'label' => $row['Label'],
+				'locationCode' => $row['LocationCode']
+			);
 		}
 
 		return $shipments;
@@ -323,36 +272,32 @@ class Shipment {
 
 		$shipment = array();
 
-
 		if(empty($pin)) {
 			$this->errors[] = "'Canpar PIN can not be empty'";
 		}
 
-		$result = $this->db->query("SELECT t.*, a.Username, l.ActualCityName, l.SteetAddress, l.PostalCode, l.LocationsID  
-							FROM TrackingInfo AS t, Admin AS a, Locations AS l 
-							WHERE t.TrackingCode =  '" . $pin . "' 
-							AND t.AdminID = a.AdminID 
-							AND t.LocationCode = l.LocationCode 
-							LIMIT 1");
-
-		if($result) {
-			$row = $result->fetch_assoc();
-
-			$shipment['date'] = $row['DateAdded'];
-			$shipment['orderId'] = $row['OrderID'];
-			$shipment['service'] = $row['CourierService'];
-			$shipment['adminId'] = $row['AdminID'];
-			$shipment['adminName'] = $row['Username'];
-			$shipment['senderLocationId'] = $row['LocationsID'];
-			$shipment['senderCity'] = $row['ActualCityName'];
-			$shipment['senderAddress'] = $row['SteetAddress'];
-			$shipment['senderPostalCode'] = $row['PostalCode'];
-			$shipment['storedLabel'] = $row['Label'];
-			$shipment['voided'] = $row['Void'];
-		
-		} else {
+		$row = $this->db->selectFirst("SELECT t.*, l.City, l.SteetAddress, l.PostalCode, l.LocationsID  
+											FROM TrackingInfo AS t
+											LEFT JOIN Locations AS l ON t.LocationCode = l.LocationCode
+											WHERE t.TrackingCode =  '" . $this->escape($pin) . "'
+											LIMIT 1");
+		if(empty($rows)) {
 			$this->errors[] = 'Can not find Shipment Details for this Purolator PIN';
+			return array();
 		}
+
+		$shipment['date'] = $row['DateAdded'];
+		$shipment['orderId'] = $row['OrderID'];
+		$shipment['service'] = $row['CourierService'];
+		$shipment['adminId'] = $row['AdminID'];
+		$shipment['adminName'] = $row['Username'];
+		$shipment['senderLocationId'] = $row['LocationsID'];
+		$shipment['senderCity'] = $row['ActualCityName'];
+		$shipment['senderAddress'] = $row['SteetAddress'];
+		$shipment['senderPostalCode'] = $row['PostalCode'];
+		$shipment['storedLabel'] = $row['Label'];
+		$shipment['voided'] = $row['Void'];
+		
 		return $shipment;
 	}
 
@@ -360,7 +305,7 @@ class Shipment {
 	public function getPackagesByOrderId($id) {
 		$packages = array();
 
-		$result = $this->db->query("SELECT t.Length, t.Width, t.Height, t.Weight, t.Reference, t.Note
+		$rows = $this->db->select("SELECT t.Length, t.Width, t.Height, t.Weight, t.Reference, t.Note
 								FROM TrackingInfo AS t
 								WHERE t.TrackingCarrierID = 2 
 								AND t.Length IS NOT NULL 
@@ -369,39 +314,34 @@ class Shipment {
 								AND t.Weight IS NOT NULL 
 								AND t.OrderID = '" . $id ."'");
 
-		if($result) {
-			while($row = $result->fetch_assoc()) {
-
-				$packages[] = array(
-					'length' => $row['Length'],
-					'width' => $row['Width'],
-					'height' => $row['Height'],
-					'weight' => $row['Weight'],
-					'reference' => $row['Reference'],
-					'note' => $row['Note']
-				);
-			}
+		foreach ($rows as $row) {
+			$packages[] = array(
+				'length' => $row['Length'],
+				'width' => $row['Width'],
+				'height' => $row['Height'],
+				'weight' => $row['Weight'],
+				'reference' => $row['Reference'],
+				'note' => $row['Note']
+			);
 		}
+
 		return $packages;
 	}
 
 
 	public function getShippingBoxes() {
 		$boxes = array();
+		$rows = $this->db->select("SELECT * FROM ProductsBoxes");
 
-		$result = $this->db->query("SELECT * FROM ProductsBoxes");
-
-		if($result) {
-			while($row = $result->fetch_assoc()) {
-				$boxes[] = array(
-					'id' => $row['ProductsBoxesID'],
-					'description' => $row['Description'],
-					'weightLimit' => $row['WeightLimit'],
-					'length' => $row['Length'],
-					'width' => $row['Width'],
-					'height' => $row['Height']
-				);
-			}
+		foreach ($rows as $row) {
+			$boxes[] = array(
+				'id' => $row['ProductsBoxesID'],
+				'description' => $row['Description'],
+				'weightLimit' => $row['WeightLimit'],
+				'length' => $row['Length'],
+				'width' => $row['Width'],
+				'height' => $row['Height']
+			);
 		}
 		return $boxes;
 	}
@@ -430,20 +370,20 @@ class Shipment {
 	private function createClient() {
         $client = null;
         $SOAP_OPTIONS = array(
-        	'location' => APP_CANPAR_BUSINESS_SERVICES_END_POINT, 
-			'uri' => APP_CANPAR_BUSINESS_SERVICES_URI, 
-            'soap_version' => SOAP_1_2,
-            'exceptions' => false,
-            'trace' => true,
-			'connection_timeout'=> 5,
-            'features' => SOAP_SINGLE_ELEMENT_ARRAYS
+				        	'location' => APP_CANPAR_BUSINESS_SERVICES_END_POINT, 
+							'uri' => APP_CANPAR_BUSINESS_SERVICES_URI, 
+				            'soap_version' => SOAP_1_2,
+				            'exceptions' => false,
+				            'trace' => true,
+							'connection_timeout'=> 5,
+				            'features' => SOAP_SINGLE_ELEMENT_ARRAYS
         );
 
 		try{
 			$client = new \SoapClient(null, $SOAP_OPTIONS);
+        
         } catch(SoapFault $e){
-            echo $e;
-            exit;
+            $this->errors[] = $e;
 		}
         return $client;
 	}
@@ -467,17 +407,17 @@ class Shipment {
     	$shipment = array();
 
         $shipment['billed_weight'] = $this->incomingData['totalWeight'];
+        $shipment['service_type'] = $this->incomingData['serviceID'];
+        $shipment['delivery_address'] = $this->getDeliveryAddress();
+        $shipment['pickup_address'] = $this->getPickupAddress();
+        $shipment['shipping_date'] = $this->getShippingDate();
+        $shipment['shipper_num'] = APP_CANPAR_SHIPPER_NUMBER;
+        $shipment['user_id'] = APP_CANPAR_USER_ID;
         $shipment['billed_weight_unit'] = 'K';
         $shipment['consolidation_type'] = 0;
-        $shipment['delivery_address'] = $this->getDeliveryAddress();
         $shipment['dg'] = 0;
         $shipment['dimention_unit'] = 'C';
-        $shipment['pickup_address'] = $this->getPickupAddress();
         $shipment['reported_weight_unit'] = 'K';
-        $shipment['service_type'] = $this->incomingData['serviceID'];
-        $shipment['shipper_num'] = APP_CANPAR_SHIPPER_NUMBER;
-        $shipment['shipping_date'] = $this->getShippingDate();
-        $shipment['user_id'] = APP_CANPAR_USER_ID;
         $shipment['cod_type'] = 'N';
         $shipment['collect'] = 0;
         $shipment['nsr'] = 0;
@@ -500,33 +440,33 @@ class Shipment {
 
     private function getDeliveryAddress() {
 
-    	$deliveryAddress = new \stdClass();
-    	$addressLine = sanitize($this->incomingData['receiverStreetNumber'] . ' ' . $this->incomingData['receiverStreetName']);
+    	$addr = new \stdClass();
+    	$addressLine = Common::fixAccents($this->incomingData['receiverStreetNumber'] . ' ' . $this->incomingData['receiverStreetName']);
 
-        $deliveryAddress->address_line_1 = $addressLine;
-       	$deliveryAddress->city = sanitize($this->incomingData['receiverCity']);
-        $deliveryAddress->country = 'CA';
-        $deliveryAddress->name = 'Canada';
-        $deliveryAddress->postal_code = str_replace(' ' , '', $this->incomingData['receiverPostalCode']);
-        $deliveryAddress->province = $this->incomingData['receiverProvince'];  
+        $addr->address_line_1 = $addressLine;
+       	$addr->city = Common::fix($this->incomingData['receiverCity']);
+        $addr->country = 'CA';
+        $addr->name = 'Canada';
+        $addr->postal_code = str_replace(' ' , '', $this->incomingData['receiverPostalCode']);
+        $addr->province = $this->incomingData['receiverProvince'];  
 
-        return $deliveryAddress;
+        return $addr;
     }
 
 
     private function getPickupAddress() {
 
-    	$pickupAddress = new \stdClass();
-    	$addressLine = sanitize($this->incomingData['senderStreetNumber'] . ' ' . $this->incomingData['senderStreetName']);
+    	$addr = new \stdClass();
+    	$addressLine = Common::fix($this->incomingData['senderStreetNumber'] . ' ' . $this->incomingData['senderStreetName']);
 
-    	$pickupAddress->address_line_1 = $addressLine;
-    	$pickupAddress->city = $this->incomingData['senderCity'];
-    	$pickupAddress->country = "CA";
-        $pickupAddress->name = "Canada";
-        $pickupAddress->postal_code = str_replace(' ', '', $this->incomingData['senderPostalCode']);
-        $pickupAddress->province = $this->incomingData['senderProvince'];
+    	$addr->address_line_1 = $addressLine;
+    	$addr->city = $this->incomingData['senderCity'];
+    	$addr->country = "CA";
+        $addr->name = "Canada";
+        $addr->postal_code = str_replace(' ', '', $this->incomingData['senderPostalCode']);
+        $addr->province = $this->incomingData['senderProvince'];
 
-        return $pickupAddress; 
+        return $addr; 
     }
 
 
@@ -555,11 +495,10 @@ class Shipment {
 
 
 	private function updateAsVoidedinDB() {
-
-		if(empty($this->voided)) {
-			return;
+		if(!empty($this->voided)) {
+			$this->db->query("UPDATE TrackingInfo SET  Void = 1 WHERE TrackingIdentifier = '" . $this->voided . "' LIMIT 1");
 		}
-		$this->db->query("UPDATE TrackingInfo SET  Void = 1 WHERE TrackingIdentifier = '" . $this->voided . "' LIMIT 1");
+		
 	}
 
 
@@ -570,12 +509,12 @@ class Shipment {
 
 			$package = 1;
 			foreach ($labels as $label) {
-			 	$files[] = getFilePathOnServer($label, $type, $package);
+			 	$files[] = Common::getFilePath($label, $type, $package);
 			 	$package++;
 			}
 
 		} else {
-			$files[] = getFilePathOnServer($labels, $type);
+			$files[] = Common::getFilePath($labels, $type);
 		}
 
 		return $files;
