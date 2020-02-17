@@ -2,10 +2,8 @@
 
 require_once "./config.php";
 
-redirectIfGuest();
-
 //Incoming Parameters 
-$jsonData 	= getIncomingJson();
+$jsonData 	= Canpar\Common::getRequest();
 
 
 //***************************************************
@@ -23,7 +21,7 @@ if($jsonData['action'] == "getLocations") {
 
 } elseif($jsonData['action'] == "getSenderLocation") {
 
-	$id = !empty($jsonData['Id']) ? $jsonData['Id'] : getAdminLocationID(DEFAULT_LOCATION_ID);
+	$id = !empty($jsonData['Id']) ? $jsonData['Id'] : DEFAULT_LOCATION_ID;
 	$location = (new Canpar\Origin())->getById($id);
 
     echo json_encode(array('sender' => $location));

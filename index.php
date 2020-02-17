@@ -2,8 +2,6 @@
 
 require_once "./config.php";
 
-redirectIfGuest();
-
 ?>
 
 <!doctype html>

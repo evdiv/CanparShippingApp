@@ -17,15 +17,6 @@ function __autoload($className) {
     return false;
 } 
 
-//Peventing access for unregistered users
-function redirectIfGuest() {
-
-	if(empty($_SESSION['AdminID'])) {
-		header("location: /index.php?msg=timeout");
-		exit;
-	} 
-}
-
 
 function getIncomingJson() {
 
@@ -66,21 +57,3 @@ function getIncomingInt($name, $default = 0) {
 	}
 	return (int)$value;	
 }
-
-
-
-function getShipperLocationID($locationID = 0) {
-	$db = new Canpar\Database();
-
-	$result = $db->query("SELECT LocationsID FROM Admin WHERE ShippingAccess = 1 AND AdminID = " . $_SESSION['AdminID']);
-	
-	if($result) {
-		$row = $result->fetch_assoc();
-		$locationID = $row['LocationsID'];
-	}
-
-	return $locationID;
-}
-
-
-

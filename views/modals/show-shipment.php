@@ -35,15 +35,6 @@
 						<span v-if="shipmentService !== ''"><b>{{ shipmentService }}</b></span>
 						<span v-else> --- </span>
 
-					<br/>Admin Name: 
-						<span v-if="shipmentAdminName !== ''">
-						<a target="_blank" :href="'https://manager.long-mcquade.com/Admin_Modify.php?action=edit&AdminID=' + shipmentAdminId">
-							{{ shipmentAdminName }}
-						</a>
-
-						</span>
-						<span v-else> --- </span>
-
 					<br/>Sender Location: 
 						<a target="_blank" :href="'https://manager.long-mcquade.com/Locations_Modify.php?action=edit&LocationsID=' + shipmentSenderId">
 							{{ shipmentSenderCity }}, {{ shipmentSenderAddress }}, {{ shipmentSenderPostalCode }}

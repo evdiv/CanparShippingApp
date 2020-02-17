@@ -23,7 +23,6 @@ var app = new Vue({
 					senderCountry: 'CA',
 
 					//New Shipment Receiver
-					incomingOrderId: $('#incomingOrderId').val(),
 					orderId: '',
 					receiverCode: '',
 					receiverCountry: 'CA',
@@ -61,8 +60,6 @@ var app = new Vue({
 					shipmentPin: '',
 					shipmentCreated: '',
 					shipmentService: '',
-					shipmentAdminName: '',
-					shipmentAdminId: '',
 					shipmentOrderId: '',
 					shipmentSenderAddress: '',
 					shipmentSenderCity: '',
@@ -141,11 +138,6 @@ var app = new Vue({
 					this.activateDatePicker();
 					this.setCurrentDate();
 					this.getShippingBoxes();
-
-					if(this.incomingOrderId !== '0') {
-						this.orderId = this.incomingOrderId;
-						this.searchShipmentByOrderId();
-					} 
 				},
 
 
@@ -594,8 +586,6 @@ var app = new Vue({
 
 								self.shipmentCreated = response.data.shipment.date;
 								self.shipmentService = response.data.shipment.service || '';
-								self.shipmentAdminName = response.data.shipment.adminName || '';
-								self.shipmentAdminId = response.data.shipment.adminId;
 								self.shipmentOrderId = response.data.shipment.orderId;
 								self.shipmentSenderAddress = response.data.shipment.senderAddress;
 								self.shipmentSenderCity = response.data.shipment.senderCity;

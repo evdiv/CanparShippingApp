@@ -156,20 +156,10 @@
 
 
 	<div class="text-right" style="margin-top: 24px;">
-		<? if($returnShipment): ?>
-
-			<button type="button" class="btn btn-info btn-sm" 
-						data-toggle="modal" 
-						data-target="#createReturnShipmentModal" 
-						v-on:click="resetShipmentDetails" 
-		          		href="#"> Create Return Shipment</button>	
-
-		<? else: ?>
-			<button type="button" class="btn btn-info btn-sm" 
-					data-toggle="modal" 
-					data-target="#createShipmentModal"  
-					v-on:click="resetShipmentDetails"> Create Shipment </button>
-		<? endif;?>
+		<button type="button" class="btn btn-info btn-sm" 
+				data-toggle="modal" 
+				data-target="#createShipmentModal"  
+				v-on:click="resetShipmentDetails"> Create Shipment </button>
 	</div>
 
 </div> 

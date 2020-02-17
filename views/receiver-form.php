@@ -6,7 +6,6 @@
 		    <label class="col-sm-4 col-form-label">Order ID</label>
 		    <div class="col-sm-8">
 		    	<div class="input-group input-group-sm">
-		    		<input type="hidden" id="incomingOrderId" value="<?= $ordersID ?>"/>
 		      		<input type="text" class="form-control form-control-sm" placeholder="Enter Order ID" v-model="orderId" v-on:keyup.enter="searchShipmentByOrderId">
 
 			      	<div class="input-group-append">

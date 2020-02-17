@@ -229,16 +229,8 @@ class Shipment {
 			$date = date('Y-m-d');
 		}
 
-		//If it is Shipper display only orders that have been shipped from the shipper's location.
-		$shipperLocationID = getShipperLocationID();
-		$shipperLocationSQL = !empty($shipperLocationID) ? " AND l.LocationsID = " . $shipperLocationID . " " : "";
-
-
-		// Since the Pickering(Distribution Centre) has the same Location Code as Yorkville (l000) 
-		// exclude it for preventing duplication in history view
 		$rows = $this->db->select("SELECT t.*, l.LocationsID FROM TrackingInfo AS t, Locations AS l 
-								WHERE t.LocationCode = l.LocationCode
-								" . $shipperLocationSQL . "
+								WHERE t.LocationID = l.LocationsID
 								AND t.TrackingCarrierID = 3
 								AND DATE(t.DateAdded) = '" . $date . "'
 								ORDER BY t.OrderID DESC, t.TrackingCode");
@@ -257,8 +249,7 @@ class Shipment {
 				'pin' => $row['TrackingCode'],
 				'date' => $row['DateAdded'],
 				'void' => $row['Void'],
-				'label' => $row['Label'],
-				'locationCode' => $row['LocationCode']
+				'label' => $row['Label']
 			);
 		}
 
@@ -278,7 +269,7 @@ class Shipment {
 
 		$row = $this->db->selectFirst("SELECT t.*, l.City, l.SteetAddress, l.PostalCode, l.LocationsID  
 											FROM TrackingInfo AS t
-											LEFT JOIN Locations AS l ON t.LocationCode = l.LocationCode
+											LEFT JOIN Locations AS l ON t.LocationID = l.LocationsID
 											WHERE t.TrackingCode =  '" . $this->escape($pin) . "'
 											LIMIT 1");
 		if(empty($rows)) {
@@ -289,10 +280,8 @@ class Shipment {
 		$shipment['date'] = $row['DateAdded'];
 		$shipment['orderId'] = $row['OrderID'];
 		$shipment['service'] = $row['CourierService'];
-		$shipment['adminId'] = $row['AdminID'];
-		$shipment['adminName'] = $row['Username'];
 		$shipment['senderLocationId'] = $row['LocationsID'];
-		$shipment['senderCity'] = $row['ActualCityName'];
+		$shipment['senderCity'] = $row['City'];
 		$shipment['senderAddress'] = $row['SteetAddress'];
 		$shipment['senderPostalCode'] = $row['PostalCode'];
 		$shipment['storedLabel'] = $row['Label'];
@@ -433,7 +422,6 @@ class Shipment {
     private function getShippingDate ($lead_time = '0') {
         // Get the current date, plus lead time specified
         $time = strtotime("+" . $lead_time . " weekdays");
-
         return date('Y-m-d\T00:00:00.000\Z', $time);
     }
 
@@ -444,7 +432,7 @@ class Shipment {
     	$addressLine = Common::fixAccents($this->incomingData['receiverStreetNumber'] . ' ' . $this->incomingData['receiverStreetName']);
 
         $addr->address_line_1 = $addressLine;
-       	$addr->city = Common::fix($this->incomingData['receiverCity']);
+       	$addr->city = Common::fixAccents($this->incomingData['receiverCity']);
         $addr->country = 'CA';
         $addr->name = 'Canada';
         $addr->postal_code = str_replace(' ' , '', $this->incomingData['receiverPostalCode']);
@@ -457,7 +445,7 @@ class Shipment {
     private function getPickupAddress() {
 
     	$addr = new \stdClass();
-    	$addressLine = Common::fix($this->incomingData['senderStreetNumber'] . ' ' . $this->incomingData['senderStreetName']);
+    	$addressLine = Common::fixAccents($this->incomingData['senderStreetNumber'] . ' ' . $this->incomingData['senderStreetName']);
 
     	$addr->address_line_1 = $addressLine;
     	$addr->city = $this->incomingData['senderCity'];

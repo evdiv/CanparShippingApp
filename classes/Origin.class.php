@@ -59,7 +59,6 @@ class Origin {
 		$location['Province'] = $row['ProvinceCode'];
 		$location['Country'] = 'CA';
 		$location['PostalCode'] = $row['PostalCode'];
-		$location['LocationCode'] = $row['LocationCode'];
 
 	    //Encode everything to UTF8
 		foreach ($location as &$val) {
@@ -94,8 +93,6 @@ class Origin {
 		$location['PostalCode'] = $row['PostalCode'];
 		$location['PhoneAreaCode'] = Address::getPhoneAreaCode($row['Phone']);
 		$location['Phone'] = Address::getPhone($row['Phone']);
-		$location['LocationCode'] = $row['StoreName'];
-
 
 	    //Encode everything to UTF8
 		foreach ($location as &$val) {
