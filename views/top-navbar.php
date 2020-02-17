@@ -10,7 +10,7 @@
 			    <ul class="navbar-nav mr-auto">
 				    <li class="nav-item active">
 				        <a class="nav-link" href="http://www.canpar.com/en/home.jsp" target="_blank">
-							<img src="//<?= APP_URL ?>/images/logo-canpar.png" height="28px">
+							<img src="<?= APP_URL ?>/images/logo-canpar.png" height="28px">
 				        </a> 
 				    </li>
 			    </ul>
