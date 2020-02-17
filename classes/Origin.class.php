@@ -17,7 +17,7 @@ class Origin {
 	public function getAll() {
 
 		$locations = array();
-		$result = $this->db->select("SELECT l.LocationsID, l.City, p.ProvinceName 
+		$rows = $this->db->select("SELECT l.LocationsID, l.City, p.ProvinceName 
 									FROM Locations AS l, Provinces AS p 
 									WHERE l.ProvincesID = p.ProvincesID
 									ORDER BY l.City");
@@ -39,7 +39,7 @@ class Origin {
 	public function getById($id) {
 
 		$location = array();
-		$result = $this->db->selectFirst("SELECT l.*, p.ProvinceName, p.ProvinceCode 
+		$row = $this->db->selectFirst("SELECT l.*, p.ProvinceName, p.ProvinceCode 
 										FROM Locations AS l, Provinces AS p
 										WHERE l.ProvincesID = p.ProvincesID
 										AND l.LocationsID = " . $id . "
@@ -72,7 +72,7 @@ class Origin {
 	public function getByOrderId($id) {
 
 		$location = array();
-		$result = $this->db->selectFirst("SELECT l.*, p.ProvinceName, p.ProvinceCode 
+		$row = $this->db->selectFirst("SELECT l.*, p.ProvinceName, p.ProvinceCode 
 								FROM Locations AS l, Provinces AS p, TrackingInfo AS t
 								WHERE l.ProvincesID = p.ProvincesID
 								AND l.LocationsID = t.LocationsID

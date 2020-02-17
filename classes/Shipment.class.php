@@ -272,7 +272,7 @@ class Shipment {
 											LEFT JOIN Locations AS l ON t.LocationID = l.LocationsID
 											WHERE t.TrackingCode =  '" . $this->escape($pin) . "'
 											LIMIT 1");
-		if(empty($rows)) {
+		if(empty($row)) {
 			$this->errors[] = 'Can not find Shipment Details for this Purolator PIN';
 			return array();
 		}
@@ -359,8 +359,8 @@ class Shipment {
 	private function createClient() {
         $client = null;
         $SOAP_OPTIONS = array(
-				        	'location' => APP_CANPAR_BUSINESS_SERVICES_END_POINT, 
-							'uri' => APP_CANPAR_BUSINESS_SERVICES_URI, 
+				        	'location' => CANPAR_BUSINESS_SERVICES_END_POINT, 
+							'uri' => CANPAR_BUSINESS_SERVICES_URI, 
 				            'soap_version' => SOAP_1_2,
 				            'exceptions' => false,
 				            'trace' => true,
@@ -383,8 +383,8 @@ class Shipment {
 
     	$this->request = array();
 
-    	$this->request[] = new \SoapVar(APP_CANPAR_USER_ID, XSD_STRING, null, null, 'user_id' );
-    	$this->request[] = new \SoapVar(APP_CANPAR_PASSWORD, XSD_STRING, null, null, 'password' );
+    	$this->request[] = new \SoapVar(CANPAR_USER_ID, XSD_STRING, null, null, 'user_id' );
+    	$this->request[] = new \SoapVar(CANPAR_PASSWORD, XSD_STRING, null, null, 'password' );
     	$this->request[] = new \SoapVar($this->createShipment(), SOAP_ENC_OBJECT, null, null, 'shipment' );
 
         return $this->request;
@@ -400,8 +400,8 @@ class Shipment {
         $shipment['delivery_address'] = $this->getDeliveryAddress();
         $shipment['pickup_address'] = $this->getPickupAddress();
         $shipment['shipping_date'] = $this->getShippingDate();
-        $shipment['shipper_num'] = APP_CANPAR_SHIPPER_NUMBER;
-        $shipment['user_id'] = APP_CANPAR_USER_ID;
+        $shipment['shipper_num'] = CANPAR_SHIPPER_NUMBER;
+        $shipment['user_id'] = CANPAR_USER_ID;
         $shipment['billed_weight_unit'] = 'K';
         $shipment['consolidation_type'] = 0;
         $shipment['dg'] = 0;
