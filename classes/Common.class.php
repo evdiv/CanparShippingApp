@@ -6,6 +6,8 @@ class Common
 {
 	public static function getRequest() {
 		$jsonData = json_decode(trim(file_get_contents('php://input')), true);	
+		$jsonData = filter_var_array($jsonData, FILTER_SANITIZE_STRING); 
+
 		if(isset($jsonData['id'])){
 			$jsonData['id'] = intval($jsonData['id']);
 		}
